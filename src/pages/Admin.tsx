@@ -27,6 +27,7 @@ interface SearchButton {
 
 interface WebResultData {
   id: string;
+  lid: number;
   name: string;
   link: string;
   title: string;
@@ -125,8 +126,13 @@ const Admin = () => {
       return;
     }
 
+    // Auto-assign next lid number
+    const maxLid = webResults.length > 0 ? Math.max(...webResults.map(r => r.lid)) : 0;
+    const nextLid = maxLid + 1;
+
     const newResult: WebResultData = {
       id: Date.now().toString(),
+      lid: nextLid,
       name: newResultName,
       link: newResultLink,
       title: newResultTitle,
@@ -147,7 +153,7 @@ const Admin = () => {
     setNewResultLogo("");
     setNewResultSponsored(false);
     setNewResultPage("1");
-    toast.success("Web result added");
+    toast.success(`Web result added with lid=${nextLid}`);
   };
 
   const deleteWebResult = (id: string) => {
@@ -441,6 +447,9 @@ const Admin = () => {
                               )}
                               <span className="text-xs bg-muted px-2 py-0.5 rounded">
                                 wr={result.webResultPage}
+                              </span>
+                              <span className="text-xs bg-accent px-2 py-0.5 rounded">
+                                lid={result.lid}
                               </span>
                             </div>
                             <h4 className="font-medium text-primary">{result.title}</h4>

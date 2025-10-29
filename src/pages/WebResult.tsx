@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 interface WebResultData {
   id: string;
+  lid: number;
   name: string;
   link: string;
   title: string;
@@ -35,6 +36,7 @@ const WebResult = () => {
       const defaultResults: WebResultData[] = [
         {
           id: "1",
+          lid: 1,
           name: "MIT Official",
           link: "https://mit.edu",
           title: "Massachusetts Institute of Technology",
@@ -45,6 +47,7 @@ const WebResult = () => {
         },
         {
           id: "2",
+          lid: 2,
           name: "Stanford",
           link: "https://stanford.edu",
           title: "Stanford University",
@@ -82,12 +85,10 @@ const WebResult = () => {
         <p className="text-sm text-muted-foreground">{result.name}</p>
         <p className="text-foreground leading-relaxed">{result.description}</p>
         <a
-          href={result.link}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={`/lid=${result.lid}`}
           className="text-sm text-primary hover:underline"
         >
-          {result.link}
+          topuniversityterritian/lid={result.lid}
         </a>
       </div>
       
