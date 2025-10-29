@@ -85,7 +85,7 @@ const Landing = () => {
                 <button
                   key={button.id}
                   onClick={() => handleButtonClick(button)}
-                  className="w-full max-w-2xl mx-auto flex items-center justify-between px-6 py-4 bg-card border border-border rounded-lg hover:border-primary transition-colors group"
+                  className="w-full max-w-2xl mx-auto flex items-center justify-between px-6 py-4 bg-card border border-transparent rounded-lg hover:border-primary hover:bg-card/80 transition-all group"
                 >
                   <span className="text-foreground text-left">{button.title}</span>
                   <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
