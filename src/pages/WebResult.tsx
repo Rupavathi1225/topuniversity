@@ -85,7 +85,7 @@ const WebResult = () => {
         <p className="text-sm text-muted-foreground">{result.name}</p>
         <p className="text-foreground leading-relaxed">{result.description}</p>
         <a
-          href={`/lid=${result.lid}`}
+          href={`/lid/${result.lid}`}
           className="text-sm text-primary hover:underline"
         >
           topuniversityterritian/lid={result.lid}

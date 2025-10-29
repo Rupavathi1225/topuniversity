@@ -1,17 +1,17 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 const LinkRedirect = () => {
-  const location = useLocation();
+  const { id } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const lidParam = location.pathname.split("=")[1];
-    if (!lidParam) {
-      window.location.href = "/";
+    if (!id) {
+      navigate("/");
       return;
     }
 
-    const lid = parseInt(lidParam);
+    const lid = parseInt(id);
     const savedResults = localStorage.getItem("webResults");
     
     if (savedResults) {
@@ -21,12 +21,12 @@ const LinkRedirect = () => {
       if (result && result.link) {
         window.location.href = result.link;
       } else {
-        window.location.href = "/";
+        navigate("/");
       }
     } else {
-      window.location.href = "/";
+      navigate("/");
     }
-  }, [location]);
+  }, [id, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">

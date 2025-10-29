@@ -24,7 +24,7 @@ const App = () => (
           <Route path="/wr=3" element={<WebResult />} />
           <Route path="/wr=4" element={<WebResult />} />
           <Route path="/wr=5" element={<WebResult />} />
-          <Route path="/lid=:id" element={<LinkRedirect />} />
+          <Route path="/lid/:id" element={<LinkRedirect />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
