@@ -19,7 +19,10 @@ const LinkRedirect = () => {
       const result = results.find((r: any) => r.lid === lid);
       
       if (result && result.link) {
-        window.location.href = result.link;
+        // Open in new tab to avoid iframe restrictions
+        window.open(result.link, "_blank");
+        // Navigate back to home after opening
+        setTimeout(() => navigate("/"), 100);
       } else {
         navigate("/");
       }
