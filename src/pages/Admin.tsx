@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Trash2, Edit, Plus, ExternalLink, LogOut } from "lucide-react";
+import { Trash2, Edit, Plus, ExternalLink, LogOut, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -42,6 +42,15 @@ interface LandingContent {
   description: string;
 }
 
+interface ClickLog {
+  lid: number;
+  link: string;
+  sessionId: string;
+  clickTime: number;
+  timeSpent: number;
+  timeSpentFormatted: string;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const [landingContent, setLandingContent] = useState<LandingContent>({
@@ -50,6 +59,7 @@ const Admin = () => {
   });
   const [searchButtons, setSearchButtons] = useState<SearchButton[]>([]);
   const [webResults, setWebResults] = useState<WebResultData[]>([]);
+  const [clickLogs, setClickLogs] = useState<ClickLog[]>([]);
   
   const [newButtonTitle, setNewButtonTitle] = useState("");
   const [newButtonLink, setNewButtonLink] = useState("");
@@ -80,6 +90,11 @@ const Admin = () => {
     const savedResults = localStorage.getItem("webResults");
     if (savedResults) {
       setWebResults(JSON.parse(savedResults));
+    }
+
+    const savedLogs = localStorage.getItem("clickLogs");
+    if (savedLogs) {
+      setClickLogs(JSON.parse(savedLogs));
     }
   }, []);
 
@@ -197,10 +212,14 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="landing" className="w-full">
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-3 mb-8">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4 mb-8">
             <TabsTrigger value="landing">Landing Content</TabsTrigger>
             <TabsTrigger value="buttons">Search Buttons</TabsTrigger>
             <TabsTrigger value="results">Web Results</TabsTrigger>
+            <TabsTrigger value="tracking">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Tracking
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="landing" className="max-w-3xl mx-auto">
@@ -486,6 +505,98 @@ const Admin = () => {
                   </div>
                 ))}
               </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tracking" className="max-w-5xl mx-auto">
+            <Card className="p-6 border-primary">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold">Click Tracking Analytics</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.removeItem("clickLogs");
+                    setClickLogs([]);
+                    toast.success("Click logs cleared");
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear Logs
+                </Button>
+              </div>
+
+              {clickLogs.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No click data yet. Start clicking links to see tracking data here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Total Clicks</p>
+                      <p className="text-3xl font-bold text-primary">{clickLogs.length}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Unique Sessions</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {new Set(clickLogs.map(log => log.sessionId)).size}
+                      </p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Unique Links</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {new Set(clickLogs.map(log => log.lid)).size}
+                      </p>
+                    </Card>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-3 text-sm font-medium">LID</th>
+                          <th className="text-left p-3 text-sm font-medium">Link</th>
+                          <th className="text-left p-3 text-sm font-medium">Session ID</th>
+                          <th className="text-left p-3 text-sm font-medium">Time Spent</th>
+                          <th className="text-left p-3 text-sm font-medium">Clicked At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clickLogs.map((log, index) => (
+                          <tr key={index} className="border-b border-border hover:bg-muted/50">
+                            <td className="p-3">
+                              <span className="text-xs bg-accent px-2 py-1 rounded">
+                                lid={log.lid}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <a
+                                href={log.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline truncate max-w-xs block"
+                              >
+                                {log.link}
+                              </a>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                                {log.sessionId.substring(0, 20)}...
+                              </span>
+                            </td>
+                            <td className="p-3 text-sm">{log.timeSpentFormatted}</td>
+                            <td className="p-3 text-sm text-muted-foreground">
+                              {new Date(log.clickTime).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </Card>
           </TabsContent>
         </Tabs>
