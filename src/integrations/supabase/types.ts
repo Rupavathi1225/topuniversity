@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      click_logs: {
+        Row: {
+          click_time: string
+          created_at: string
+          id: string
+          lid: number
+          link: string
+          session_id: string
+          time_spent: number
+        }
+        Insert: {
+          click_time?: string
+          created_at?: string
+          id?: string
+          lid: number
+          link: string
+          session_id: string
+          time_spent: number
+        }
+        Update: {
+          click_time?: string
+          created_at?: string
+          id?: string
+          lid?: number
+          link?: string
+          session_id?: string
+          time_spent?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

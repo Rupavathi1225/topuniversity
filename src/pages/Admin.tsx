@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SearchButton {
   id: string;
@@ -43,12 +44,12 @@ interface LandingContent {
 }
 
 interface ClickLog {
+  id: string;
   lid: number;
   link: string;
-  sessionId: string;
-  clickTime: number;
-  timeSpent: number;
-  timeSpentFormatted: string;
+  session_id: string;
+  click_time: string;
+  time_spent: number;
 }
 
 const Admin = () => {
@@ -92,11 +93,23 @@ const Admin = () => {
       setWebResults(JSON.parse(savedResults));
     }
 
-    const savedLogs = localStorage.getItem("clickLogs");
-    if (savedLogs) {
-      setClickLogs(JSON.parse(savedLogs));
-    }
+    // Load click logs from database
+    loadClickLogs();
   }, []);
+
+  const loadClickLogs = async () => {
+    const { data, error } = await supabase
+      .from("click_logs")
+      .select("*")
+      .order("click_time", { ascending: false });
+    
+    if (error) {
+      console.error("Error loading click logs:", error);
+      toast.error("Failed to load click logs");
+    } else {
+      setClickLogs(data || []);
+    }
+  };
 
   const saveLandingContent = () => {
     localStorage.setItem("landingContent", JSON.stringify(landingContent));
@@ -515,10 +528,18 @@ const Admin = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    localStorage.removeItem("clickLogs");
-                    setClickLogs([]);
-                    toast.success("Click logs cleared");
+                  onClick={async () => {
+                    const { error } = await supabase
+                      .from("click_logs")
+                      .delete()
+                      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
+                    
+                    if (error) {
+                      toast.error("Failed to clear logs");
+                    } else {
+                      setClickLogs([]);
+                      toast.success("Click logs cleared");
+                    }
                   }}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
@@ -541,7 +562,7 @@ const Admin = () => {
                     <Card className="p-4">
                       <p className="text-sm text-muted-foreground">Unique Sessions</p>
                       <p className="text-3xl font-bold text-primary">
-                        {new Set(clickLogs.map(log => log.sessionId)).size}
+                        {new Set(clickLogs.map(log => log.session_id)).size}
                       </p>
                     </Card>
                     <Card className="p-4">
@@ -564,8 +585,8 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {clickLogs.map((log, index) => (
-                          <tr key={index} className="border-b border-border hover:bg-muted/50">
+                        {clickLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-border hover:bg-muted/50">
                             <td className="p-3">
                               <span className="text-xs bg-accent px-2 py-1 rounded">
                                 lid={log.lid}
@@ -583,12 +604,12 @@ const Admin = () => {
                             </td>
                             <td className="p-3">
                               <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                {log.sessionId.substring(0, 20)}...
+                                {log.session_id.substring(0, 20)}...
                               </span>
                             </td>
-                            <td className="p-3 text-sm">{log.timeSpentFormatted}</td>
+                            <td className="p-3 text-sm">{Math.floor(log.time_spent / 1000)}s</td>
                             <td className="p-3 text-sm text-muted-foreground">
-                              {new Date(log.clickTime).toLocaleString()}
+                              {new Date(log.click_time).toLocaleString()}
                             </td>
                           </tr>
                         ))}

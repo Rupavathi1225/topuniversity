@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const LinkRedirect = () => {
   const { id } = useParams();
@@ -11,46 +12,49 @@ const LinkRedirect = () => {
       return;
     }
 
-    const lid = parseInt(id);
-    const savedResults = localStorage.getItem("webResults");
-    
-    if (savedResults) {
-      const results = JSON.parse(savedResults);
-      const result = results.find((r: any) => r.lid === lid);
+    const trackClick = async () => {
+      const lid = parseInt(id);
+      const savedResults = localStorage.getItem("webResults");
       
-      if (result && result.link) {
-        // Track the click
-        const sessionId = sessionStorage.getItem("sessionId") || "unknown";
-        const sessionStartTime = parseInt(sessionStorage.getItem("sessionStartTime") || "0");
-        const clickTime = Date.now();
-        const timeSpent = sessionStartTime ? clickTime - sessionStartTime : 0;
+      if (savedResults) {
+        const results = JSON.parse(savedResults);
+        const result = results.find((r: any) => r.lid === lid);
         
-        const clickLog = {
-          lid,
-          link: result.link,
-          sessionId,
-          clickTime,
-          timeSpent,
-          timeSpentFormatted: `${Math.floor(timeSpent / 1000)}s`
-        };
-        
-        // Save to click logs
-        const existingLogs = JSON.parse(localStorage.getItem("clickLogs") || "[]");
-        existingLogs.push(clickLog);
-        localStorage.setItem("clickLogs", JSON.stringify(existingLogs));
-        
-        console.log("Click tracked:", clickLog);
-        
-        // Open in new tab to avoid iframe restrictions
-        window.open(result.link, "_blank");
-        // Navigate back to home after opening
-        setTimeout(() => navigate("/"), 100);
+        if (result && result.link) {
+          // Track the click in database
+          const sessionId = sessionStorage.getItem("sessionId") || "unknown";
+          const sessionStartTime = parseInt(sessionStorage.getItem("sessionStartTime") || "0");
+          const timeSpent = sessionStartTime ? Date.now() - sessionStartTime : 0;
+          
+          // Save to database
+          const { error } = await supabase
+            .from("click_logs")
+            .insert({
+              session_id: sessionId,
+              lid,
+              link: result.link,
+              time_spent: timeSpent
+            });
+          
+          if (error) {
+            console.error("Error tracking click:", error);
+          } else {
+            console.log("Click tracked successfully");
+          }
+          
+          // Open in new tab to avoid iframe restrictions
+          window.open(result.link, "_blank");
+          // Navigate back to home after opening
+          setTimeout(() => navigate("/"), 100);
+        } else {
+          navigate("/");
+        }
       } else {
         navigate("/");
       }
-    } else {
-      navigate("/");
-    }
+    };
+
+    trackClick();
   }, [id, navigate]);
 
   return (
