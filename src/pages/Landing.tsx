@@ -24,6 +24,14 @@ const Landing = () => {
   const [buttons, setButtons] = useState<SearchButton[]>([]);
 
   useEffect(() => {
+    // Initialize session tracking
+    if (!sessionStorage.getItem("sessionId")) {
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      const sessionStartTime = Date.now();
+      sessionStorage.setItem("sessionId", sessionId);
+      sessionStorage.setItem("sessionStartTime", sessionStartTime.toString());
+    }
+
     const savedContent = localStorage.getItem("landingContent");
     if (savedContent) {
       setContent(JSON.parse(savedContent));
