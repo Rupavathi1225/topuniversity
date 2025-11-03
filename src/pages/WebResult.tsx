@@ -74,9 +74,15 @@ const WebResult = () => {
         </div>
       )}
       
-      {result.logoUrl && (
-        <div className="w-8 h-8 bg-muted rounded-full" />
-      )}
+      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+        {result.logoUrl ? (
+          <img src={result.logoUrl} alt={result.name} className="w-full h-full rounded-full object-cover" />
+        ) : (
+          <span className="text-primary font-semibold text-sm">
+            {result.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+      </div>
       
       <div className="space-y-2">
         <a 
