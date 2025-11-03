@@ -79,9 +79,14 @@ const WebResult = () => {
       )}
       
       <div className="space-y-2">
-        <h3 className="text-xl font-medium text-foreground hover:underline cursor-pointer">
+        <a 
+          href={result.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xl font-medium text-foreground hover:underline cursor-pointer block"
+        >
           {result.title}
-        </h3>
+        </a>
         <p className="text-sm text-muted-foreground">{result.name}</p>
         <p className="text-foreground leading-relaxed">{result.description}</p>
         <a
