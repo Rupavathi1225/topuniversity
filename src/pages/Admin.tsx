@@ -36,6 +36,9 @@ interface WebResultData {
   logoUrl: string;
   isSponsored: boolean;
   webResultPage: string;
+  allowedCountries?: string[];
+  isWorldwide?: boolean;
+  backlinkUrl?: string;
 }
 
 interface LandingContent {
@@ -50,6 +53,25 @@ interface ClickLog {
   session_id: string;
   click_time: string;
   time_spent: number;
+  ip_address?: string;
+  country?: string;
+  source?: string;
+  device?: string;
+  user_agent?: string;
+  page_views?: number;
+}
+
+interface SessionData {
+  id: string;
+  session_id: string;
+  ip_address?: string;
+  country?: string;
+  source?: string;
+  device?: string;
+  page_views: number;
+  total_clicks: number;
+  first_visit: string;
+  last_active: string;
 }
 
 const Admin = () => {
@@ -61,6 +83,9 @@ const Admin = () => {
   const [searchButtons, setSearchButtons] = useState<SearchButton[]>([]);
   const [webResults, setWebResults] = useState<WebResultData[]>([]);
   const [clickLogs, setClickLogs] = useState<ClickLog[]>([]);
+  const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("all");
+  const [selectedSource, setSelectedSource] = useState<string>("all");
   
   const [newButtonTitle, setNewButtonTitle] = useState("");
   const [newButtonLink, setNewButtonLink] = useState("");
@@ -74,6 +99,9 @@ const Admin = () => {
   const [newResultLogo, setNewResultLogo] = useState("");
   const [newResultSponsored, setNewResultSponsored] = useState(false);
   const [newResultPage, setNewResultPage] = useState("1");
+  const [newResultCountries, setNewResultCountries] = useState<string[]>([]);
+  const [newResultWorldwide, setNewResultWorldwide] = useState(true);
+  const [newResultBacklink, setNewResultBacklink] = useState("");
 
   const [editingResult, setEditingResult] = useState<string | null>(null);
 
@@ -93,8 +121,9 @@ const Admin = () => {
       setWebResults(JSON.parse(savedResults));
     }
 
-    // Load click logs from database
+    // Load click logs and sessions from database
     loadClickLogs();
+    loadSessions();
   }, []);
 
   const loadClickLogs = async () => {
@@ -108,6 +137,19 @@ const Admin = () => {
       toast.error("Failed to load click logs");
     } else {
       setClickLogs(data || []);
+    }
+  };
+
+  const loadSessions = async () => {
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .order("last_active", { ascending: false });
+    
+    if (error) {
+      console.error("Error loading sessions:", error);
+    } else {
+      setSessions(data || []);
     }
   };
 
@@ -442,6 +484,27 @@ const Admin = () => {
                   <Label htmlFor="sponsored">Sponsored</Label>
                 </div>
 
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="worldwide"
+                    checked={newResultWorldwide}
+                    onCheckedChange={setNewResultWorldwide}
+                  />
+                  <Label htmlFor="worldwide">Worldwide Access</Label>
+                </div>
+
+                {!newResultWorldwide && (
+                  <div>
+                    <Label>Backlink URL (for restricted countries)</Label>
+                    <Input
+                      value={newResultBacklink}
+                      onChange={(e) => setNewResultBacklink(e.target.value)}
+                      placeholder="https://worldwide-alternative.com"
+                      className="mt-2"
+                    />
+                  </div>
+                )}
+
                 <Button onClick={addWebResult} className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Result
@@ -521,101 +584,180 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="tracking" className="max-w-5xl mx-auto">
+          <TabsContent value="tracking" className="max-w-7xl mx-auto">
             <Card className="p-6 border-primary">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold">Click Tracking Analytics</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    const { error } = await supabase
-                      .from("click_logs")
-                      .delete()
-                      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
-                    
-                    if (error) {
-                      toast.error("Failed to clear logs");
-                    } else {
+                <h2 className="text-2xl font-semibold">Analytics Dashboard</h2>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      loadClickLogs();
+                      loadSessions();
+                      toast.success("Data refreshed");
+                    }}
+                  >
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.from("click_logs").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+                      await supabase.from("sessions").delete().neq("id", "00000000-0000-0000-0000-000000000000");
                       setClickLogs([]);
-                      toast.success("Click logs cleared");
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear Logs
-                </Button>
+                      setSessions([]);
+                      toast.success("All logs cleared");
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear All
+                  </Button>
+                </div>
               </div>
 
-              {clickLogs.length === 0 ? (
+              {/* Summary Cards */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <Card className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Total Sessions</p>
+                  <p className="text-4xl font-bold text-primary">{sessions.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Unique visitors tracked</p>
+                </Card>
+                <Card className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Page Views</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {sessions.reduce((sum, s) => sum + s.page_views, 0)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Total pages viewed</p>
+                </Card>
+                <Card className="p-6">
+                  <p className="text-sm text-muted-foreground mb-2">Total Clicks</p>
+                  <p className="text-4xl font-bold text-primary">{clickLogs.length}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Buttons and links clicked</p>
+                </Card>
+              </div>
+
+              {/* Filters */}
+              <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+                <h3 className="font-semibold mb-4">Filters</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Country</Label>
+                    <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="All Countries" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Countries</SelectItem>
+                        {Array.from(new Set(sessions.map(s => s.country).filter(Boolean))).map(country => (
+                          <SelectItem key={country} value={country!}>{country}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Source</Label>
+                    <Select value={selectedSource} onValueChange={setSelectedSource}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="All Sources" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sources</SelectItem>
+                        {Array.from(new Set(sessions.map(s => s.source).filter(Boolean))).map(source => (
+                          <SelectItem key={source} value={source!}>{source}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sessions Table */}
+              {sessions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No click data yet. Start clicking links to see tracking data here.</p>
+                  <p>No tracking data yet. Start browsing to see analytics here.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <Card className="p-4">
-                      <p className="text-sm text-muted-foreground">Total Clicks</p>
-                      <p className="text-3xl font-bold text-primary">{clickLogs.length}</p>
-                    </Card>
-                    <Card className="p-4">
-                      <p className="text-sm text-muted-foreground">Unique Sessions</p>
-                      <p className="text-3xl font-bold text-primary">
-                        {new Set(clickLogs.map(log => log.session_id)).size}
-                      </p>
-                    </Card>
-                    <Card className="p-4">
-                      <p className="text-sm text-muted-foreground">Unique Links</p>
-                      <p className="text-3xl font-bold text-primary">
-                        {new Set(clickLogs.map(log => log.lid)).size}
-                      </p>
-                    </Card>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left p-3 text-sm font-medium">LID</th>
-                          <th className="text-left p-3 text-sm font-medium">Link</th>
-                          <th className="text-left p-3 text-sm font-medium">Session ID</th>
-                          <th className="text-left p-3 text-sm font-medium">Time Spent</th>
-                          <th className="text-left p-3 text-sm font-medium">Clicked At</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clickLogs.map((log) => (
-                          <tr key={log.id} className="border-b border-border hover:bg-muted/50">
-                            <td className="p-3">
-                              <span className="text-xs bg-accent px-2 py-1 rounded">
-                                lid={log.lid}
-                              </span>
-                            </td>
-                            <td className="p-3">
-                              <a
-                                href={log.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:underline truncate max-w-xs block"
-                              >
-                                {log.link}
-                              </a>
-                            </td>
-                            <td className="p-3">
-                              <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                {log.session_id.substring(0, 20)}...
-                              </span>
-                            </td>
-                            <td className="p-3 text-sm">{Math.floor(log.time_spent / 1000)}s</td>
-                            <td className="p-3 text-sm text-muted-foreground">
-                              {new Date(log.click_time).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-border bg-muted/50">
+                        <th className="text-left p-3 text-sm font-semibold">Session ID</th>
+                        <th className="text-left p-3 text-sm font-semibold">IP Address</th>
+                        <th className="text-left p-3 text-sm font-semibold">Country</th>
+                        <th className="text-left p-3 text-sm font-semibold">Source</th>
+                        <th className="text-left p-3 text-sm font-semibold">Device</th>
+                        <th className="text-left p-3 text-sm font-semibold">Page Views</th>
+                        <th className="text-left p-3 text-sm font-semibold">Clicks</th>
+                        <th className="text-left p-3 text-sm font-semibold">Related Searches</th>
+                        <th className="text-left p-3 text-sm font-semibold">Last Active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sessions
+                        .filter(s => selectedCountry === 'all' || s.country === selectedCountry)
+                        .filter(s => selectedSource === 'all' || s.source === selectedSource)
+                        .map((session) => {
+                          const sessionClicks = clickLogs.filter(log => log.session_id === session.session_id);
+                          const relatedSearches = Array.from(new Set(sessionClicks.map(c => c.lid)));
+                          
+                          return (
+                            <tr key={session.id} className="border-b border-border hover:bg-muted/30">
+                              <td className="p-3">
+                                <span className="text-xs font-mono bg-primary/10 px-2 py-1 rounded">
+                                  {session.session_id.substring(0, 8)}...
+                                </span>
+                              </td>
+                              <td className="p-3 text-sm">{session.ip_address || 'N/A'}</td>
+                              <td className="p-3">
+                                <span className="text-sm bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-1 rounded">
+                                  {session.country || 'Unknown'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-1 rounded">
+                                  {session.source || 'direct'}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className="text-sm">
+                                  {session.device === 'Mobile' ? '📱' : '💻'} {session.device || 'Unknown'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="text-sm font-semibold">{session.page_views}</span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="text-sm font-semibold bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-1 rounded">
+                                  {sessionClicks.length}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-wrap gap-1">
+                                  {relatedSearches.length > 0 ? (
+                                    relatedSearches.slice(0, 3).map(lid => (
+                                      <span key={lid} className="text-xs bg-accent px-2 py-0.5 rounded">
+                                        {lid}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">None</span>
+                                  )}
+                                  {relatedSearches.length > 3 && (
+                                    <span className="text-xs text-muted-foreground">+{relatedSearches.length - 3}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-sm text-muted-foreground">
+                                {new Date(session.last_active).toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </Card>

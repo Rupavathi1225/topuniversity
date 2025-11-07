@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getSessionId, getUserInfo, trackClick } from "@/lib/tracking";
 
 const LinkRedirect = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [userCountry, setUserCountry] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -12,7 +13,7 @@ const LinkRedirect = () => {
       return;
     }
 
-    const trackClick = async () => {
+    const handleRedirect = async () => {
       const lid = parseInt(id);
       const savedResults = localStorage.getItem("webResults");
       
@@ -20,31 +21,27 @@ const LinkRedirect = () => {
         const results = JSON.parse(savedResults);
         const result = results.find((r: any) => r.lid === lid);
         
-        if (result && result.link) {
-          // Track the click in database
-          const sessionId = sessionStorage.getItem("sessionId") || "unknown";
-          const sessionStartTime = parseInt(sessionStorage.getItem("sessionStartTime") || "0");
-          const timeSpent = sessionStartTime ? Date.now() - sessionStartTime : 0;
+        if (result) {
+          const sessionId = getSessionId();
+          const userInfo = await getUserInfo();
           
-          // Save to database
-          const { error } = await supabase
-            .from("click_logs")
-            .insert({
-              session_id: sessionId,
-              lid,
-              link: result.link,
-              time_spent: timeSpent
-            });
+          let targetUrl = result.link;
           
-          if (error) {
-            console.error("Error tracking click:", error);
-          } else {
-            console.log("Click tracked successfully");
+          // Check country restrictions
+          if (userInfo && result.allowedCountries && result.allowedCountries.length > 0) {
+            const isCountryAllowed = result.isWorldwide || 
+              result.allowedCountries.includes(userInfo.country);
+            
+            if (!isCountryAllowed && result.backlinkUrl) {
+              targetUrl = result.backlinkUrl;
+            }
           }
           
-          // Open in new tab to avoid iframe restrictions
-          window.open(result.link, "_blank");
-          // Navigate back to home after opening
+          // Track the click
+          await trackClick(sessionId, lid, targetUrl, userInfo);
+          
+          // Open in new tab
+          window.open(targetUrl, "_blank");
           setTimeout(() => navigate("/"), 100);
         } else {
           navigate("/");
@@ -54,7 +51,7 @@ const LinkRedirect = () => {
       }
     };
 
-    trackClick();
+    handleRedirect();
   }, [id, navigate]);
 
   return (

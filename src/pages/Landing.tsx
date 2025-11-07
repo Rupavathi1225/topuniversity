@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronRight } from "lucide-react";
+import { getSessionId, getUserInfo, trackSession } from "@/lib/tracking";
 
 interface SearchButton {
   id: string;
@@ -24,13 +25,14 @@ const Landing = () => {
   const [buttons, setButtons] = useState<SearchButton[]>([]);
 
   useEffect(() => {
-    // Initialize session tracking
-    if (!sessionStorage.getItem("sessionId")) {
-      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      const sessionStartTime = Date.now();
-      sessionStorage.setItem("sessionId", sessionId);
-      sessionStorage.setItem("sessionStartTime", sessionStartTime.toString());
-    }
+    // Initialize session tracking with user info
+    const initTracking = async () => {
+      const sessionId = getSessionId();
+      const userInfo = await getUserInfo();
+      await trackSession(sessionId, userInfo);
+    };
+    
+    initTracking();
 
     const savedContent = localStorage.getItem("landingContent");
     if (savedContent) {

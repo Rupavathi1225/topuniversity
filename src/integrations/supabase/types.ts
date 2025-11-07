@@ -17,30 +17,90 @@ export type Database = {
       click_logs: {
         Row: {
           click_time: string
+          country: string | null
           created_at: string
+          device: string | null
           id: string
+          ip_address: string | null
           lid: number
           link: string
+          page_views: number | null
           session_id: string
+          source: string | null
           time_spent: number
+          user_agent: string | null
         }
         Insert: {
           click_time?: string
+          country?: string | null
           created_at?: string
+          device?: string | null
           id?: string
+          ip_address?: string | null
           lid: number
           link: string
+          page_views?: number | null
           session_id: string
+          source?: string | null
           time_spent: number
+          user_agent?: string | null
         }
         Update: {
           click_time?: string
+          country?: string | null
           created_at?: string
+          device?: string | null
           id?: string
+          ip_address?: string | null
           lid?: number
           link?: string
+          page_views?: number | null
           session_id?: string
+          source?: string | null
           time_spent?: number
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          country: string | null
+          device: string | null
+          first_visit: string
+          id: string
+          ip_address: string | null
+          last_active: string
+          page_views: number | null
+          session_id: string
+          source: string | null
+          total_clicks: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          country?: string | null
+          device?: string | null
+          first_visit?: string
+          id?: string
+          ip_address?: string | null
+          last_active?: string
+          page_views?: number | null
+          session_id: string
+          source?: string | null
+          total_clicks?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          country?: string | null
+          device?: string | null
+          first_visit?: string
+          id?: string
+          ip_address?: string | null
+          last_active?: string
+          page_views?: number | null
+          session_id?: string
+          source?: string | null
+          total_clicks?: number | null
+          user_agent?: string | null
         }
         Relationships: []
       }
